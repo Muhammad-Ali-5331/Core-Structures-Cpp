@@ -1,0 +1,55 @@
+#include <bits/stdc++.h>
+using namespace std;
+struct Area {
+    int sz;
+    bool operator<(const Area &other) const { return sz < other.sz; }
+};
+
+int floodTraverse(vector<vector<char>> &grid, int r, int c) {
+    if (grid[r][c] != 'w') return 0;
+    grid[r][c] = 'v'; // Mark visited
+    int sz = 1;
+    sz += floodTraverse(grid, r - 1, c);
+    sz += floodTraverse(grid, r + 1, c);
+    sz += floodTraverse(grid, r, c + 1);
+    sz += floodTraverse(grid, r, c - 1);
+    return sz;
+}
+
+int main() {
+    int n;
+    if (!(cin >> n)) { cerr << "Please Enter a Size\n"; exit(1); }
+    if (n <= 0) { cerr << "Invalid Size\n"; exit(2); }
+
+    vector<vector<char>> grid(n + 2, vector<char>(n + 2, 'b'));
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= n; j++) {
+            char val;
+            if (!(cin >> val)) { cerr << "[!] Missing input data.\n"; return 1; }
+            if (val != 'w' && val != 'b') { cerr << "[!] Invalid cell character: " << val << "\n"; return 1; }
+            grid[i][j] = val;
+        }
+    }
+
+    vector<Area> areas;
+    for (int r = 1; r <= n; r++) {
+        for (int c = 1; c <= n; c++) {
+            if (grid[r][c] == 'w') {
+                int sz = floodTraverse(grid, r, c);
+                areas.push_back({sz});
+            }
+        }
+    }
+
+    sort(areas.begin(), areas.end());
+
+    if (!areas.empty()) {
+        cout << "Number of Islands: " << areas.size() << "\n";
+        cout << "========== Islands (sorted by size) =========\n";
+        for (size_t i = 0; i < areas.size(); i++) {
+            cout << (i + 1) << ": " << areas[i].sz << "\n";
+        }
+    } else { cout << "No White Areas....\n"; }
+    return 0;
+}
