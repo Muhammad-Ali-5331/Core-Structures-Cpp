@@ -1,0 +1,176 @@
+#include <bits/stdc++.h>
+using namespace std;
+struct Window {
+    string title;
+    string color;
+    int width;
+    int height;
+    Window* prev;
+    Window* next;
+    Window(const string& t, const string& c, int w, int h)
+        : title(t), color(c), width(w), height(h), prev(nullptr), next(nullptr) {}
+};
+
+class WindowManager {
+    Window* head;
+    int count;
+
+    Window* findByTitle(const string& title) {
+        Window* cur = head;
+        while (cur) {
+            if (cur->title == title) return cur;
+            cur = cur->next;
+        }
+        return nullptr;
+    }
+
+public:
+    WindowManager() : head(nullptr), count(0) {}
+    ~WindowManager() {
+        Window* cur = head;
+        while (cur) { Window* nxt = cur->next; delete cur; cur = nxt; }
+    }
+
+    // creates window with default 800x600 size
+    void createWindow(const string& title, const string& color) {
+        if (findByTitle(title)) {
+            cout << "Error: Window '" << title << "' already exists.\n";
+            return;
+        }
+        Window* w = new Window(title, color, 800, 600);
+        if (!head) { head = w;
+        } else {
+            // insert at end
+            Window* cur = head;
+            while (cur->next) cur = cur->next;
+            cur->next = w;
+            w->prev = cur;
+        }
+        count++;
+        cout << "Created: " << title << " [" << color << "] 800x600\n";
+    }
+
+    // bring window to front (make active)
+    void activateWindow(const string& title) {
+        Window* w = findByTitle(title);
+        if (!w) { cout << "Error: Window '" << title << "' not found.\n"; return; }
+        if (w == head) { cout << "Already active: " << title << "\n"; return; }
+
+        // detach from list
+        if (w->prev) w->prev->next = w->next;
+        if (w->next) w->next->prev = w->prev;
+
+        // place at front
+        w->prev = nullptr;
+        w->next = head;
+        if (head) head->prev = w;
+        head = w;
+        cout << "Activated: " << title << "\n";
+    }
+
+    void resizeWindow(const string& title, int w, int h) {
+        if (w <= 0 || h <= 0) { cout << "Error: Invalid dimensions.\n"; return; }
+        Window* win = findByTitle(title);
+        if (!win) { cout << "Error: Window '" << title << "' not found.\n"; return; }
+        win->width = w;
+        win->height = h;
+        cout << "Resized: " << title << " to " << w << "x" << h << "\n";
+    }
+
+    void deleteWindow(const string& title) {
+        Window* w = findByTitle(title);
+        if (!w) { cout << "Error: Window '" << title << "' not found.\n"; return; }
+
+        if (w->prev) w->prev->next = w->next;
+        else head = w->next;
+        if (w->next) w->next->prev = w->prev;
+
+        cout << "Deleted: " << title << "\n";
+        delete w;
+        count--;
+    }
+
+    void listWindows() const {
+        if (!head) { cout << "No windows open.\n"; return; }
+        int i = 1;
+        Window* cur = head;
+        while (cur) {
+            string marker = (i == 1) ? " [ACTIVE]" : "";
+            cout << i++ << ". " << cur->title
+                 << " | " << cur->color
+                 << " | " << cur->width << "x" << cur->height
+                 << marker << "\n";
+            cur = cur->next;
+        }
+    }
+
+    void printHelp() const {
+        cout << "\nCommands:\n"
+             << "  create <title> <color>         - create window (default 800x600)\n"
+             << "  activate <title>               - bring window to front\n"
+             << "  resize <title> <width> <height>- resize window\n"
+             << "  delete <title>                 - remove window\n"
+             << "  list                           - show all windows\n"
+             << "  help                           - show this menu\n"
+             << "  exit                           - quit\n\n";
+    }
+};
+
+int main() {
+    WindowManager wm;
+    string line;
+
+    cout << "=== Window Manager ADT ===\n";
+    wm.printHelp();
+
+    while (true) {
+        cout << "> ";
+        if (!getline(cin, line)) break;
+
+        istringstream iss(line);
+        string cmd;
+        iss >> cmd;
+
+        if (cmd == "exit") {
+            cout << "Goodbye.\n";
+            break;
+        } else if (cmd == "list") {
+            wm.listWindows();
+        } else if (cmd == "help") {
+            wm.printHelp();
+        } else if (cmd == "create") {
+            string title, color;
+            if (!(iss >> title >> color)) {
+                cout << "Usage: create <title> <color>\n";
+            } else {
+                wm.createWindow(title, color);
+            }
+        } else if (cmd == "activate") {
+            string title;
+            if (!(iss >> title)) {
+                cout << "Usage: activate <title>\n";
+            } else {
+                wm.activateWindow(title);
+            }
+        } else if (cmd == "resize") {
+            string title;
+            int w, h;
+            if (!(iss >> title >> w >> h)) {
+                cout << "Usage: resize <title> <width> <height>\n";
+            } else {
+                wm.resizeWindow(title, w, h);
+            }
+        } else if (cmd == "delete") {
+            string title;
+            if (!(iss >> title)) {
+                cout << "Usage: delete <title>\n";
+            } else {
+                wm.deleteWindow(title);
+            }
+        } else if (!cmd.empty()) {
+            cout << "Unknown command. Type 'help' for options.\n";
+        }
+    }
+
+    return 0;
+}
