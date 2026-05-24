@@ -1,0 +1,214 @@
+#include <bits/stdc++.h>
+using namespace std;
+using Clock = chrono::high_resolution_clock;
+using Nano  = chrono::nanoseconds;
+
+// -------- BST Node --------
+struct Node {
+    int val;
+    Node* left;
+    Node* right;
+    Node(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+// -------- BST Class --------
+class BST {
+    Node* root;
+
+    Node* insertRec(Node* node, int val) {
+        if (!node) return new Node(val);
+        if (val <= node->val) node->left = insertRec(node->left,val);
+        else if (val > node->val) node->right = insertRec(node->right, val);
+        return node;
+    }
+
+    Node* searchRec(Node* node, int val) const {
+        if (!node) return nullptr;
+        if (node->val == val) return node;
+        if (val < node->val) return searchRec(node->left,val);
+        return searchRec(node->right,val);
+    }
+
+    void inorderRec(Node* node, vector<int>& out) const {
+        if (!node) return;
+        inorderRec(node->left,out);
+        out.push_back(node->val);
+        inorderRec(node->right,out);
+    }
+
+    // find minimum node in a subtree
+    Node* minNode(Node* node) const {
+        while (node->left) node = node->left;
+        return node;
+    }
+
+    Node* deleteRec(Node* node, int val) {
+        if (!node) return nullptr;
+        if (val < node->val) { node->left  = deleteRec(node->left,  val);}
+        else if (val > node->val) { node->right = deleteRec(node->right, val); }
+        else {
+            // node to delete found
+            if (!node->left) { Node* tmp = node->right; delete node; return tmp; }
+            if (!node->right) { Node* tmp = node->left; delete node; return tmp; }
+
+            // two children: replace with inorder successor
+            Node* successor = minNode(node->right);
+            node->val = successor->val;
+            node->right = deleteRec(node->right, successor->val);
+        }
+        return node;
+    }
+
+    void detroyTree(Node* node) {
+        if (!node) return;
+        detroyTree(node->left);
+        detroyTree(node->right);
+        delete node;
+    }
+
+public:
+    BST() : root(nullptr) {}
+    ~BST() { detroyTree(root); }
+
+    void insert(int val){ root = insertRec(root, val); }
+    bool search(int val) const { return searchRec(root, val) != nullptr; }
+    void deleteVal(int val) { root = deleteRec(root, val); }
+    vector<int> inorder() const {
+        vector<int> result;
+        inorderRec(root, result);
+        return result;
+    }
+    void clear() { detroyTree(root); root = nullptr; }
+    bool empty() const { return root == nullptr; }
+};
+
+// -------- Timing Helpers --------
+double insertSet(BST& tree, const vector<int>& nums) {
+    auto t0 = Clock::now();
+    for (int v : nums) tree.insert(v);
+    auto t1 = Clock::now();
+    return (double)chrono::duration_cast<Nano>(t1 - t0).count() / 1000.0; // microseconds
+}
+double traverseSet(const BST& tree) {
+    auto t0 = Clock::now();
+    tree.inorder();
+    auto t1 = Clock::now();
+    return (double)chrono::duration_cast<Nano>(t1 - t0).count() / 1000.0;
+}
+
+// -------- Performance Table --------
+void runTimingTable() {
+    const int SETS = 5;
+    const int SIZE = 100;
+    srand((unsigned)time(nullptr));
+    cout << "\n--- Generating 5 sets of " << SIZE << " random numbers ---\n\n";
+    cout << left
+         << setw(6)  << "Set #"
+         << setw(28) << "Time for Insertions (us)"
+         << "Time for Inorder Traversal (us)\n";
+    cout << string(66, '-') << "\n";
+    double totalIns = 0, totalTrav = 0;
+    for (int s = 1; s <= SETS; ++s) {
+        vector<int> nums(SIZE);
+        for (int i = 0; i < SIZE; ++i) nums[i] = rand() % 10000;
+        BST tree;
+        double ins  = insertSet(tree, nums);
+        double trav = traverseSet(tree);
+        totalIns  += ins;
+        totalTrav += trav;
+        cout << setw(6) << s
+             << setw(28) << fixed << setprecision(3) << ins
+             << fixed << setprecision(3) << trav << "\n";
+    }
+    cout << string(66, '-') << "\n";
+    cout << setw(6) << "Avg"
+         << setw(28) << fixed << setprecision(3) << totalIns  / SETS
+         << fixed << setprecision(3) << totalTrav / SETS << "\n\n";
+}
+
+// -------- Interactive Menu --------
+void printMenu() {
+    cout << "\n=== Binary Search Tree Menu ===\n"
+         << "  1. Insert\n"
+         << "  2. Search\n"
+         << "  3. Inorder Traversal\n"
+         << "  4. Delete\n"
+         << "  5. Run Timing Table (5 sets x 100 random)\n"
+         << "  6. Clear Tree\n"
+         << "  7. Exit\n\n"
+         << "Choice: ";
+}
+
+int main() {
+    BST tree;
+    string line;
+
+    cout << "=== BST - Primitive Operations ===\n";
+
+    while (true) {
+        printMenu();
+        if (!getline(cin, line)) break;
+        int choice = 0;
+        try { choice = stoi(line); } catch (...) { choice = 0; }
+
+        if (choice == 1) {
+            cout << "Value to insert: ";
+            if (!getline(cin, line)) break;
+            int val = 0;
+            bool ok = true;
+            try { val = stoi(line); } catch (...) { ok = false; }
+            if (!ok) { cout << "Invalid input.\n"; continue; }
+            tree.insert(val);
+            cout << "Inserted: " << val << "\n";
+
+        } else if (choice == 2) {
+            cout << "Value to search: ";
+            if (!getline(cin, line)) break;
+            int val = 0;
+            bool ok = true;
+            try { val = stoi(line); } catch (...) { ok = false; }
+            if (!ok) { cout << "Invalid input.\n"; continue; }
+            cout << (tree.search(val) ? "Found: " : "Not found: ") << val << "\n";
+
+        } else if (choice == 3) {
+            if (tree.empty()) { cout << "Tree is empty.\n"; continue; }
+            vector<int> result = tree.inorder();
+            cout << "Inorder: ";
+            for (size_t i = 0; i < result.size(); ++i) {
+                cout << result[i];
+                if (i + 1 < result.size()) cout << " ";
+            }
+            cout << "\n";
+
+        } else if (choice == 4) {
+            cout << "Value to delete: ";
+            if (!getline(cin, line)) break;
+            int val = 0;
+            bool ok = true;
+            try { val = stoi(line); } catch (...) { ok = false; }
+            if (!ok) { cout << "Invalid input.\n"; continue; }
+            if (!tree.search(val)) {
+                cout << "Value " << val << " not in tree.\n";
+            } else {
+                tree.deleteVal(val);
+                cout << "Deleted: " << val << "\n";
+            }
+
+        } else if (choice == 5) {
+            runTimingTable();
+
+        } else if (choice == 6) {
+            tree.clear();
+            cout << "Tree cleared.\n";
+
+        } else if (choice == 7) {
+            cout << "Goodbye.\n";
+            break;
+
+        } else {
+            cout << "Invalid choice (1-7).\n";
+        }
+    }
+
+    return 0;
+}
